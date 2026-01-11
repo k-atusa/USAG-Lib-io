@@ -208,10 +208,16 @@ func (z *Z64Writer) WriteFile(name string, path string) error {
 	defer f.Close()
 
 	// Create zip header
-	header := &zip.FileHeader{
-		Name:   name,
-		Method: z.comp,
+	info, err := f.Stat()
+	if err != nil {
+		return err
 	}
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+	header.Name = name
+	header.Method = z.comp
 	w, err := z.zip.CreateHeader(header)
 	if err != nil {
 		return err
@@ -225,8 +231,9 @@ func (z *Z64Writer) WriteFile(name string, path string) error {
 func (z *Z64Writer) WriteBin(name string, data []byte) error {
 	// Create zip header
 	header := &zip.FileHeader{
-		Name:   name,
-		Method: z.comp,
+		Name:               name,
+		Method:             z.comp,
+		UncompressedSize64: uint64(len(data)),
 	}
 	w, err := z.zip.CreateHeader(header)
 	if err != nil {
@@ -425,13 +432,13 @@ func (f *BFile) Read(size int) ([]byte, error) {
 		cut := 256 * 1048576
 		data = make([]byte, size)
 		for i := 0; i < size/cut; i++ {
-			_, err = f.file.Read(data[i*cut : i*cut+cut])
+			_, err = io.ReadFull(f.file, data[i*cut:i*cut+cut])
 			if err != nil {
 				return data, err
 			}
 		}
 		if size%cut != 0 {
-			_, err = f.file.Read(data[(size/cut)*cut:])
+			_, err = io.ReadFull(f.file, data[(size/cut)*cut:])
 		}
 		f.pos += size
 	}
