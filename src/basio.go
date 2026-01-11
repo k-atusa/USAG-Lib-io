@@ -192,6 +192,9 @@ func (z *Z64Writer) Init(output string, header []byte, compress bool) error {
 		return err
 	}
 	z.zip = zip.NewWriter(z.writer)
+	if len(header) > 0 { // set offset
+		z.zip.SetOffset(int64(len(header)))
+	}
 	if compress {
 		z.comp = zip.Deflate
 	} else {
