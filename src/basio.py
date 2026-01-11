@@ -97,7 +97,7 @@ class Encoder: # Base-N encoder
             ba.append(byte_val)
         return bytes(ba)
     
-class Z64Writer:
+class Z64Writer: # zip64 writer
     def __init__(self, output: str, header: bytes, compress: bool):
         self.output = io.BytesIO() if output == "" else open(output, "wb")
         self.output.write(header) # write header first
@@ -118,7 +118,7 @@ class Z64Writer:
         else:
             self.output.close()
 
-class Z64Reader:
+class Z64Reader: # zip64 reader
     def __init__(self, input):
         self.input = io.BytesIO(input) if type(input) == bytes else open(input, "rb")
         self.zip = zipfile.ZipFile(self.input, "r", allowZip64=True) # create zip reader

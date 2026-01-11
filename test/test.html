@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basio JS Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="../src/basio.js"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; background-color: #f0f0f0; }
+        #console { 
+            background-color: #1e1e1e; 
+            color: #d4d4d4; 
+            padding: 15px; 
+            border-radius: 5px; 
+            white-space: pre-wrap; 
+            min-height: 300px;
+            overflow-y: auto;
+        }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        .success { color: #4caf50; }
+        .info { color: #569cd6; }
+    </style>
+</head>
+<body>
+
+    <h1>Basio.js Library Test</h1>
+    <p>test will be executed on your browser</p>
+    <button onclick="runTest()">(Run Test)</button>
+    <br><br>
+    <div id="console">Ready...</div>
+
+    <script>
+        // printer
+        const consoleDiv = document.getElementById('console');
+        function log(message, color = '') {
+            const span = document.createElement('span');
+            span.textContent = message + "\n";
+            if (color) span.style.color = color;
+            consoleDiv.appendChild(span);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Uint8Array to hex string
+        function formatBytes(u8) {
+            if (u8.length > 20) return `[Uint8Array length=${u8.length}]`;
+            return `b"${Array.from(u8).map(b => '\\x' + b.toString(16).padStart(2, '0')).join('')}"`;
+        }
+
+        async function runTest() {
+            consoleDiv.innerHTML = "";
+            log("--- Start Test ---", "#569cd6");
+
+            try {
+                // 1. Encoder Test
+                const m = new Basio.Encoder();
+                const textStr = "안녕하세요, 카투사 프로그래밍 클럽 라이브러리 테스트입니다. Hello, world!";
+                const text = new TextEncoder().encode(textStr);
+                const data = [
+                    new Uint8Array([]),
+                    new Uint8Array([0x00]),
+                    new Uint8Array([0x12, 0x34]),
+                    new Uint8Array([0x3f, 0xff]),
+                    new Uint8Array([0xff, 0xee, 0xff, 0xff, 0xff, 0xdc, 0xff, 0xff]),
+                    new Uint8Array([0xff, 0x00, 0x00, 0x01, 0xff, 0x00, 0x00, 0x01, 0x10])
+                ];
+
+                // Encode Base64
+                let test = m.encode(text, true);
+                let decoded = m.decode(test);
+                log(`${test} : ${new TextDecoder().decode(decoded)}`);
+
+                // Encode Base32k
+                test = m.encode(text, false);
+                decoded = m.decode(test);
+                log(`${test} : ${new TextDecoder().decode(decoded)}`);
+
+                // Binary Data Loop
+                for (let i = 0; i < data.length; i++) {
+                    test = m.encode(data[i], false);
+                    decoded = m.decode(test);
+                    log(`${test} : ${formatBytes(decoded)}`);
+                }
+
+                log("\n--- AFile Test (Large File Simulation) ---", "#569cd6");
+
+                // 2. AFile Read Test (5MiB)
+                const largeSize = 5 * 1048576; 
+                log(`Generating dummy file (${largeSize} bytes)...`);
+                
+                // make dummy file
+                const dummyData = new Uint8Array(largeSize); 
+                const blob = new Blob([dummyData]);
+                const f = new Basio.AFile();
+                await f.open(blob, true);
+                f.seek(1048576);
+                
+                const readData = await f.read(8);
+                log(`${formatBytes(readData)}, ${f.tell()}, "${f.getPath()}", ${f.getSize()}`);
+                await f.close();
+
+                // 3. AFile Memory Write Test
+                const f2 = new Basio.AFile();
+                await f2.open(new Uint8Array([0x00, 0x01]), false);
+                await f2.write(new Uint8Array([0x02, 0x03, 0x04, 0x05]));
+                
+                const pos = f2.tell();
+                const path = f2.getPath();
+                const size = f2.getSize();
+                await f2.close();
+
+                const memRes = f2.getMemResult(); // get memory data after close
+                log(`${pos}, "${path}", ${size}, [Closed Blob size: ${memRes ? memRes.size : 'null'}]`);
+
+
+                log("\n--- Zip Test (Z64Writer/Reader) ---", "#569cd6");
+
+                // 4. Zip Writer
+                const header = new TextEncoder().encode("Hello, world!");
+                const zw = new Basio.Z64Writer("", header, false); // Memory output
+
+                zw.writebin("binary", header);
+                zw.writefile("file", blob);
+                
+                await zw.close();
+                const zipResult = zw.getMemResult();
+                log(`Zip generated. Total size: ${zipResult.length} bytes`);
+
+                // 5. Zip Reader
+                const zr = new Basio.Z64Reader(zipResult);
+                await zr.init();
+                
+                // print files list
+                const fileNames = zr.files.map(f => f.name);
+                log(`Files in zip: ${JSON.stringify(fileNames)}`);
+
+                // read first file
+                const binContent = await zr.read(0);
+                log(`Read "binary": ${formatBytes(binContent)}`);
+                zr.close();
+
+                // download result
+                log("Downloading result as 'test1.zip'...", "#4caf50");
+                zw._browserDownload(zipResult, "test1.zip");
+
+            } catch (e) {
+                console.error(e);
+                log(`ERROR: ${e.message}`, "red");
+            }
+        }
+    </script>
+</body>
+</html>
