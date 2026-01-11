@@ -1,6 +1,6 @@
 // test789c : USAG Lib basic io
 
-package basio
+package src
 
 import (
 	"archive/zip"
