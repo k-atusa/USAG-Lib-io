@@ -99,7 +99,7 @@ class Encoder: # Base-N encoder
     
 class Z64Writer: # zip64 writer
     def __init__(self, output: str, header: bytes, compress: bool):
-        self.output = io.BytesIO() if output == "" else open(output, "wb")
+        self.output = io.BytesIO() if output == "" else open(output, "wb") # set output empty to write on memory
         self.output.write(header) # write header first
         self.zip = zipfile.ZipFile(self.output, "a", zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED, allowZip64=True) # create zip writer
 
@@ -109,14 +109,15 @@ class Z64Writer: # zip64 writer
     def writebin(self, name: str, data: bytes):
         self.zip.writestr(name, data)
 
-    def close(self):
+    def close(self) -> bytes:
         self.zip.close()
         if type(self.output) == io.BytesIO:
             temp = self.output.getvalue()
             self.output.close()
-            self.output = temp
+            return temp
         else:
             self.output.close()
+            return None
 
 class Z64Reader: # zip64 reader
     def __init__(self, input):
@@ -151,16 +152,17 @@ class AFile: # abstract file
         self.readmode = isRead
         self.pos = 0
 
-    def close(self):
+    def close(self) -> bytes:
         if self.readmode and self.bytemode:
             self.handle = None
         elif self.bytemode:
             temp = self.handle.getvalue()
             self.handle.close()
-            self.handle = temp
+            return temp
         elif self.handle != None:
             self.handle.close()
             self.handle = None
+        return None
 
     def read(self, size: int) -> bytes: # -1 to read all
         if self.readmode:
