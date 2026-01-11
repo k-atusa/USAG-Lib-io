@@ -121,7 +121,7 @@
                 const zw = new Basio.Z64Writer("", header, false); // Memory output
 
                 zw.writebin("binary", header);
-                zw.writefile("file", blob);
+                zw.writefile("파일", blob);
                 
                 await zw.close();
                 const zipResult = zw.getMemResult();

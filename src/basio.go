@@ -219,10 +219,10 @@ func (z *Z64Writer) WriteFile(name string, path string) error {
 	if err != nil {
 		return err
 	}
-	header.Name = name
-	header.Method = z.comp
 	header.CRC32 = 0
 	header.Flags = 0
+	header.Name = name
+	header.Method = z.comp
 	w, err := z.zip.CreateHeader(header)
 	if err != nil {
 		return err
@@ -239,6 +239,8 @@ func (z *Z64Writer) WriteBin(name string, data []byte) error {
 		Name:               name,
 		Method:             z.comp,
 		UncompressedSize64: uint64(len(data)),
+		CRC32:              0,
+		Flags:              0,
 	}
 	w, err := z.zip.CreateHeader(header)
 	if err != nil {

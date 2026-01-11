@@ -85,7 +85,7 @@ func main() {
 	}
 
 	zw.WriteBin("binary", []byte("Hello, world!"))
-	zw.WriteFile("file", "test0.bin")
+	zw.WriteFile("큰 파일", "test0.bin")
 	zw.Close()
 
 	// 5. Zip64 Reader Test

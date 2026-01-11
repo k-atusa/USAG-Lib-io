@@ -28,7 +28,7 @@ m.write(b"\x02\x03\x04\x05")
 print(f"{m.tell()}, {m.getpath()}, {m.getsize()}, {m.close()}")
 
 m = basio.Z64Writer("test1.zip", b"Hello, world!", False)
-m.writebin("binary", b"Hello, world!")
+m.writebin("큰 파일", b"Hello, world!")
 m.writefile("file", "test0.bin")
 m.close()
 m = basio.Z64Reader("test1.zip")
